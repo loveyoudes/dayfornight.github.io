@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solana Token Sign-In</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 50px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    #status {
+      font-size: 18px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Solana Token Sign-In</h1>
+  <p>Connect wallet and sign in to earn tokens!</p>
+  <button id="connectButton">Connect Wallet</button>
+  <button id="signInButton" style="display:none;">Sign In</button>
+  <div id="status"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.31.0/dist/web3.min.js"></script>
+
+  <script>
+    const programId = new solanaWeb3.PublicKey("5ALGYRGRcZQ8yEuvRKL65eb7mwHMFteMX2kJyf26hNWK"); // Replace with your Program ID
+    let wallet, connection, userPublicKey;
+
+    document.getElementById("connectButton").onclick = async () => {
+      if (window.solana && window.solana.isPhantom) {
+        wallet = window.solana;
+        await wallet.connect();
+        userPublicKey = wallet.publicKey.toString();
+        connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl("devnet"), "confirmed");
+        document.getElementById("connectButton").style.display = "none";
+        document.getElementById("signInButton").style.display = "block";
+        updateStatus("Wallet connected: " + userPublicKey);
+      } else {
+        alert("Please install Phantom Wallet to proceed.");
+      }
+    };
+
+    document.getElementById("signInButton").onclick = async () => {
+      const transaction = new solanaWeb3.Transaction();
+      const instruction = new solanaWeb3.TransactionInstruction({
+        keys: [{ pubkey: new solanaWeb3.PublicKey(userPublicKey), isSigner: true, isWritable: true }],
+        programId,
+        data: Buffer.from([]),
+      });
+
+      transaction.add(instruction);
+      try {
+        const signedTx = await wallet.signTransaction(transaction);
+        const txid = await connection.sendRawTransaction(signedTx.serialize());
+        await connection.confirmTransaction(txid);
+        updateStatus("Sign-in successful! Transaction ID: " + txid);
+      } catch (error) {
+        console.error(error);
+        updateStatus("Sign-in failed. Please try again.");
+      }
+    };
+
+    function updateStatus(message) {
+      document.getElementById("status").textContent = message;
+    }
+  </script>
+</body>
+</html>
